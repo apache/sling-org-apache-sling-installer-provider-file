@@ -24,11 +24,16 @@ import java.util.StringTokenizer;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The <code>Activator</code>
  */
 public class Activator implements BundleActivator {
+    
+    
+    private static final Logger logger = LoggerFactory.getLogger(Activator.class);
 
     public static final String KEY_DIR = "sling.fileinstall.dir";
     public static final String KEY_DELAY = "sling.fileinstall.interval";
@@ -74,10 +79,21 @@ public class Activator implements BundleActivator {
         this.servicesListener = null;
     }
 
+
     public static Object getProp(final BundleContext bundleContext, final String key) {
-        Object o = bundleContext.getProperty(key);
+        Object bundleProperty = bundleContext.getProperty(key);
+        Object systemProperty = System.getProperty(key);
+        
+        // Warn if system property overrides configured bundle property
+        if (systemProperty != null && systemProperty != null) {
+            if (!systemProperty.equals(bundleProperty)) {
+                logger.warn("overriding key '{}' with value '{}' from system property",key, systemProperty );
+            }
+        }
+        
+        Object o = systemProperty;
         if (o == null) {
-            o = System.getProperty(key);
+            o = bundleProperty;
             if ( o == null ) {
                 o = System.getProperty(key.toUpperCase().replace('.', '_'));
             }
