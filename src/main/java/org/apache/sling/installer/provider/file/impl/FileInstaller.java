@@ -18,22 +18,26 @@
  */
 package org.apache.sling.installer.provider.file.impl;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.sling.installer.api.InstallableResource;
 import org.apache.sling.installer.api.OsgiInstaller;
 import org.apache.sling.installer.api.UpdateHandler;
 import org.apache.sling.installer.api.UpdateResult;
+import org.apache.sling.installer.api.serializer.ConfigurationSerializer;
+import org.apache.sling.installer.api.serializer.ConfigurationSerializerFactory;
 import org.apache.sling.settings.SlingSettingsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +49,8 @@ import org.slf4j.LoggerFactory;
  */
 public class FileInstaller
     implements UpdateHandler {
+
+    private static final String CONFIG_FILE_EXTENSION = ".cfg.json";
 
     /** The scheme we use to register our resources. */
     public static final String SCHEME_PREFIX = "fileinstall";
@@ -171,8 +177,8 @@ public class FileInstaller
                 final int pos = url.indexOf(':');
                 final String oldPath = url.substring(pos + 1);
                 prefix = url.substring(0, pos);
-                // ensure extension 'config'
-                if ( !oldPath.endsWith(".config") ) {
+                // ensure extension '.cfg.json'
+                if ( !oldPath.endsWith(CONFIG_FILE_EXTENSION) ) {
                     final File file = new File(oldPath);
                     if ( file.exists() ) {
                         file.delete();
@@ -180,9 +186,9 @@ public class FileInstaller
                     final int lastDot = oldPath.lastIndexOf('.');
                     final int lastSlash = oldPath.lastIndexOf('/');
                     if ( lastDot <= lastSlash ) {
-                        path = oldPath + ".config";
+                        path = oldPath + CONFIG_FILE_EXTENSION;
                     } else {
-                        path = oldPath.substring(0, lastDot) + ".config";
+                        path = oldPath.substring(0, lastDot) + CONFIG_FILE_EXTENSION;
                     }
                 } else {
                     path = oldPath;
@@ -191,23 +197,18 @@ public class FileInstaller
             } else {
                 // add
                 final FileMonitor first = this.monitors.get(0);
-                path = first.getRoot().getAbsolutePath() + '/' + id + ".config";
+                path = first.getRoot().getAbsolutePath() + '/' + id + CONFIG_FILE_EXTENSION;
                 prefix = first.getListener().getScheme();
                 logger.debug("Add of {} at {}", resourceType, path);
             }
 
             final File file = new File(path);
             file.getParentFile().mkdirs();
-            final FileOutputStream fos = new FileOutputStream(file);
-            try {
-                fos.write("# Configuration created by Apache Sling File Installer\n".getBytes("UTF-8"));
-                ConfigurationHandler.write(fos, dict);
-            } finally {
-                try {
-                    fos.close();
-                } catch (final IOException ignore) {}
-            }
-
+            try (OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
+                fos.write("# Configuration created by Apache Sling File Installer\n".getBytes(StandardCharsets.UTF_8));
+                ConfigurationSerializer serializer = ConfigurationSerializerFactory.create(ConfigurationSerializerFactory.Format.JSON);
+                serializer.serialize(dict, fos);
+            } 
             final UpdateResult result = new UpdateResult(prefix + ':' + path);
             result.setResourceIsMoved(true);
             return result;
