@@ -205,7 +205,8 @@ public class FileInstaller
             final File file = new File(path);
             file.getParentFile().mkdirs();
             try (OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
-                fos.write("# Configuration created by Apache Sling File Installer\n".getBytes(StandardCharsets.UTF_8));
+                // comments starting with "//"  allowed according to https://osgi.org/specification/osgi.cmpn/7.0.0/service.configurator.html#d0e131566
+                fos.write("// Configuration created by Apache Sling File Installer\n".getBytes(StandardCharsets.UTF_8));
                 ConfigurationSerializer serializer = ConfigurationSerializerFactory.create(ConfigurationSerializerFactory.Format.JSON);
                 serializer.serialize(dict, fos);
             } 
