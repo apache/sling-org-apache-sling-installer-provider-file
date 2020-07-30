@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.sling.installer.api.InstallableResource;
 import org.apache.sling.installer.api.OsgiInstaller;
@@ -49,7 +48,7 @@ public class Installer
     private final OsgiInstaller installer;
 
     /** The settings service. */
-    private final Set<String> activeRunModes;
+    private final SlingSettingsService slingSettings;
 
     /** The scheme to use. */
     private final String scheme;
@@ -63,7 +62,7 @@ public class Installer
             final String id) {
         this.scheme = FileInstaller.SCHEME_PREFIX + id;
         this.installer = installer;
-        this.activeRunModes = settings.getRunModes();
+        this.slingSettings = settings;
         this.prefix = new File(root).getAbsolutePath() + File.separator;
     }
 
@@ -145,7 +144,7 @@ public class Installer
             final int pos = name.indexOf('/');
             if ( pos != -1 && name.startsWith("install.") ) {
                 final String runModes = name.substring(8, pos);
-                final int activeModes = this.isActive(runModes);
+                final int activeModes = slingSettings.getBestRunModeMatchCountFromSpec(runModes);
                 if ( activeModes > 0 ) {
                     prio = InstallableResource.DEFAULT_PRIORITY + activeModes;
                 } else {
@@ -181,16 +180,4 @@ public class Installer
         return null;
     }
 
-    private int isActive(final String runModesString) {
-        final String[] runModes = runModesString.split("\\.");
-        boolean active = true;
-        for(final String mode : runModes) {
-            if ( !activeRunModes.contains(mode) ) {
-                active = false;
-                break;
-            }
-        }
-
-        return active ? runModes.length : 0;
-    }
 }
