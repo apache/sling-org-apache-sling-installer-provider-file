@@ -64,7 +64,7 @@ public class ServicesListener {
     private final FileInstaller installer;
 
     /** Service registration. */
-    private ServiceRegistration registration;
+    private ServiceRegistration<UpdateHandler> registration;
 
     private boolean running = false;
 
@@ -76,7 +76,8 @@ public class ServicesListener {
         if ( writeBackObj != null && "false".equalsIgnoreCase(writeBackObj.toString())) {
             writeBack = false;
         }
-        this.installer = new FileInstaller(configs, writeBack);
+        boolean autoCreateDirectories = Boolean.parseBoolean(Activator.getProp(this.bundleContext, Activator.KEY_AUTOCREATE_DIR));
+        this.installer = new FileInstaller(configs, writeBack, autoCreateDirectories);
         this.installerListener = new Listener(INSTALLER_SERVICE_NAME);
         this.settingsListener = new Listener(SETTINGS_SERVICE_NAME);
         this.installerListener.start();
@@ -112,12 +113,12 @@ public class ServicesListener {
     private void startScanner(final OsgiInstaller installer, final SlingSettingsService settings) {
         if ( !running ) {
             this.installer.start(installer, settings);
-            final Dictionary<String, Object> props = new Hashtable<String, Object>();
+            final Dictionary<String, Object> props = new Hashtable<>();
             props.put(Constants.SERVICE_DESCRIPTION, "Apache Sling File Installer Controller Service");
             props.put(Constants.SERVICE_VENDOR, VENDOR);
             props.put(UpdateHandler.PROPERTY_SCHEMES, this.installer.getSchemes());
 
-            this.registration = this.bundleContext.registerService(UpdateHandler.class.getName(),
+            this.registration = this.bundleContext.registerService(UpdateHandler.class,
                     this.installer, props);
             running = true;
         }
@@ -138,7 +139,7 @@ public class ServicesListener {
 
         private final String serviceName;
 
-        private ServiceReference reference;
+        private ServiceReference<?> reference;
         private Object service;
 
         public Listener(final String serviceName) {
