@@ -26,6 +26,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Dictionary;
@@ -65,9 +67,11 @@ public class FileInstaller
     private final List<FileMonitor> monitors = new ArrayList<FileMonitor>();
 
     private final boolean writeBack;
+    private final boolean autoCreateDirectories;
 
-    public FileInstaller(final List<ScanConfiguration> configs, final boolean writeBack) {
+    public FileInstaller(final List<ScanConfiguration> configs, final boolean writeBack, boolean autoCreateDirectories) {
         this.writeBack = writeBack;
+        this.autoCreateDirectories = autoCreateDirectories;
         if ( configs != null ) {
             scanConfigurations.addAll(configs);
         }
@@ -84,6 +88,13 @@ public class FileInstaller
                 key = "${sling.home}" + key.substring(settings.getSlingHomePath().length());
             }
             logger.debug("Starting monitor for {}", config.directory);
+            if (autoCreateDirectories) {
+                try {
+                    Files.createDirectory(Paths.get(config.directory));
+                } catch (IOException e) {
+                    logger.warn("Could not create directory to monitor at {}", config.directory, e);
+                }
+            }
             this.monitors.add(new FileMonitor(new File(config.directory),
                     config.scanInterval, new Installer(installer, settings, config.directory, hash(key))));
         }

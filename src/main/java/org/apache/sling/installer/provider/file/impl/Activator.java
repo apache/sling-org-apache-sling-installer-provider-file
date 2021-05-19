@@ -33,9 +33,14 @@ import org.osgi.framework.Constants;
 @Header(name = Constants.BUNDLE_ACTIVATOR, value = "${@class}")
 public class Activator implements BundleActivator {
 
+    /** Comma separated list of directories to monitor */
     public static final String KEY_DIR = "sling.fileinstall.dir";
+    /** The interval in milleseconds between two consecutive polls */
     public static final String KEY_DELAY = "sling.fileinstall.interval";
+    /**  If {@code true} OSGi configurations coming from the file system should be written back to the file system after modification */
     public static final String KEY_WRITEBACK = "sling.fileinstall.writeback";
+    /** If {@code true} the monitored directories are created if not yet existing during start */
+    public static final String KEY_AUTOCREATE_DIR = "sling.fileinstall.dir.autocreate";
 
     /** The services listener will activate the installer. */
     private ServicesListener servicesListener;
@@ -45,17 +50,13 @@ public class Activator implements BundleActivator {
      */
     public void start(final BundleContext context) {
         // read initial scan configurations
-        final List<ScanConfiguration> configs = new ArrayList<ScanConfiguration>();
+        final List<ScanConfiguration> configs = new ArrayList<>();
         final Object dir = getProp(context, KEY_DIR);
         if ( dir != null ) {
             Long delay = null;
-            final Object interval = getProp(context, KEY_DELAY);
+            final String interval = getProp(context, KEY_DELAY);
             if ( interval != null ) {
-                if ( interval instanceof Number ) {
-                    delay = ((Number)interval).longValue();
-                } else {
-                    delay = Long.valueOf(interval.toString());
-                }
+                delay = Long.valueOf(interval.toString());
             }
             final StringTokenizer st = new StringTokenizer(dir.toString(), ",");
             while ( st.hasMoreTokens() ) {
@@ -77,14 +78,12 @@ public class Activator implements BundleActivator {
         this.servicesListener = null;
     }
 
-    public static Object getProp(final BundleContext bundleContext, final String key) {
-        Object o = bundleContext.getProperty(key);
-        if (o == null) {
-            o = System.getProperty(key);
-            if ( o == null ) {
-                o = System.getProperty(key.toUpperCase().replace('.', '_'));
-            }
+    public static String getProp(final BundleContext bundleContext, final String key) {
+        // this already falls back to system properties
+        String value = bundleContext.getProperty(key);
+        if (value == null) {
+            value = System.getProperty(key.toUpperCase().replace('.', '_'));
         }
-        return o;
+        return value;
     }
 }
