@@ -90,7 +90,7 @@ public class FileInstaller
             logger.debug("Starting monitor for {}", config.directory);
             if (autoCreateDirectories) {
                 try {
-                    Files.createDirectory(Paths.get(config.directory));
+                    Files.createDirectories(Paths.get(config.directory));
                 } catch (IOException e) {
                     logger.warn("Could not create directory to monitor at {}", config.directory, e);
                 }
